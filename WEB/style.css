@@ -1,1 +1,46 @@
+body {
+    margin: 0;
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: Arial, sans-serif;
+    line-height: 1.7;
+}
 
+.legal-page {
+    max-width: 850px;
+    margin: 60px auto;
+    padding: 0 24px;
+}
+
+h1 {
+    font-size: 42px;
+    margin-bottom: 5px;
+}
+
+h2 {
+    margin-top: 40px;
+    color: #ffffff;
+}
+
+p,
+li {
+    color: #b8c1cc;
+}
+
+.updated {
+    color: #7d8590;
+    font-size: 14px;
+}
+
+.back {
+    color: #58a6ff;
+    text-decoration: none;
+}
+
+.back:hover {
+    text-decoration: underline;
+}
+
+strong {
+    color: #ffffff;
+}
