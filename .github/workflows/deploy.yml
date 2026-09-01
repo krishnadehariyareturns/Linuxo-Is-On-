@@ -16,6 +16,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Prepare deployment files
+        run: |
+          mkdir deploy
+
+          rsync -av . deploy/ \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='docs/' \
+            --exclude='node_modules/' \
+            --exclude='.env' \
+            --exclude='*.log' \
+            --exclude='deploy/'
+
       - name: Deploy via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
@@ -23,12 +36,5 @@ jobs:
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT }}
-          local_path: './*'
+          local_path: './deploy/*'
           remote_path: '/your/project/'
-          exclude: |
-            **/docs/**
-            **/.git/**
-            **/.github/**
-            **/node_modules/**
-            **/.env
-            **/*.log
