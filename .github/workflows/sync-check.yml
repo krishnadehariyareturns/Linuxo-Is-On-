@@ -1,0 +1,81 @@
+name: SFTP Sync Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-check:
+    name: Check SFTP vs GitHub
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SFTP client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      - name: Create GitHub file list
+        run: |
+          git ls-files \
+            ':!docs/**' \
+            ':!.github/**' \
+            ':!node_modules/**' \
+            ':!.env' \
+            ':!*.log' \
+            | sort > github-files.txt
+
+      - name: Download SFTP file list
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+        run: |
+          lftp -u "$SFTP_USERNAME","$SFTP_PASSWORD" \
+            -p "$SFTP_PORT" \
+            "sftp://$SFTP_HOST" <<EOF
+          set sftp:auto-confirm yes
+          set net:max-retries 2
+          cls -1 -R /your/project/ > sftp-files.txt
+          bye
+          EOF
+
+          sed -i 's#^/your/project/##' sftp-files.txt
+
+          sort -o sftp-files.txt sftp-files.txt
+
+      - name: Compare files
+        run: |
+          comm -23 sftp-files.txt github-files.txt > sftp-only.txt
+          comm -13 sftp-files.txt github-files.txt > github-only.txt
+
+      - name: Show sync report
+        run: |
+          echo "## 🔍 SFTP Sync Check" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          echo "### ⚠️ Files on SFTP but NOT in GitHub" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -s sftp-only.txt ]; then
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            cat sftp-only.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "None." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### ℹ️ Files in GitHub but NOT on SFTP" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -s github-only.txt ]; then
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            cat github-only.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "None." >> "$GITHUB_STEP_SUMMARY"
+          fi
