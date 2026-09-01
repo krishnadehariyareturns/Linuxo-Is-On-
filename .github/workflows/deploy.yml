@@ -1,0 +1,34 @@
+name: Deploy Linuxo
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy via SFTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT }}
+          local_path: './*'
+          remote_path: '/your/project/'
+          exclude: |
+            **/docs/**
+            **/.git/**
+            **/.github/**
+            **/node_modules/**
+            **/.env
+            **/*.log
