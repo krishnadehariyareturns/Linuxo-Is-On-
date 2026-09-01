@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   workflow_dispatch:
 
 jobs:
@@ -34,7 +35,7 @@ jobs:
           server: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          port: ${{ .SFTP_PORT }}
+          port: ${{ secrets.SFTP_PORT }}
           local_path: './deploy/*'
           remote_path: './'
           sftp_only: true
