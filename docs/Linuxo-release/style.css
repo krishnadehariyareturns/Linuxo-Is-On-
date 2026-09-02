@@ -1,0 +1,97 @@
+:root {
+  --bg: #050505;
+  --fg: #f5f5f2;
+  --muted: #999;
+  --line: #292929;
+  --serif: "Playfair Display", Georgia, serif;
+  --mono: "DM Mono", monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--mono);
+  overflow-x: hidden; cursor: crosshair;
+}
+a { color: inherit; text-decoration: none; }
+.grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: .055;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");
+}
+.cursor-glow {
+  position: fixed; width: 280px; height: 280px; border-radius: 50%; pointer-events:none;
+  background: radial-gradient(circle, rgba(255,255,255,.09), transparent 68%);
+  transform: translate(-50%,-50%); z-index: 1; mix-blend-mode: screen;
+}
+.nav {
+  position: fixed; z-index: 10; top:0; left:0; right:0; display:flex; justify-content:space-between;
+  padding: 26px 4vw; mix-blend-mode:difference;
+}
+.brand { display:flex; align-items:center; gap:12px; font-size:12px; letter-spacing:.18em; font-weight:500; }
+.brand-mark { border:1px solid #fff; width:25px; height:25px; display:grid; place-items:center; font-family:var(--serif); font-size:15px; }
+.menu-btn { color:#fff; background:none; border:0; font:inherit; font-size:10px; letter-spacing:.15em; cursor:pointer; }
+.menu-btn span { display:inline-block; margin-left:8px; font-size:16px; }
+.hero { min-height:100svh; padding: 17vh 8vw 7vh; display:flex; flex-direction:column; justify-content:center; position:relative; }
+.eyebrow { font-size:10px; letter-spacing:.22em; color:#aaa; margin:0 0 28px; }
+.hero-title { font-family:var(--serif); font-weight:500; font-size:clamp(64px, 11vw, 170px); line-height:.82; letter-spacing:-.065em; margin:0; max-width:1000px; }
+.hero-title span { display:block; overflow:hidden; }
+.hero-title .italic, h2 em { font-style:italic; font-weight:500; }
+.hero-copy { max-width:480px; color:#aaa; line-height:1.8; font-size:12px; margin:50px 0 34px; }
+.launch-meta { display:flex; gap:50px; border-top:1px solid var(--line); padding-top:20px; max-width:620px; }
+.launch-meta div { display:flex; flex-direction:column; gap:7px; }
+.launch-meta small { font-size:8px; color:#777; letter-spacing:.18em; }
+.launch-meta strong { font-size:10px; letter-spacing:.08em; font-weight:500; }
+.launch-meta i { display:inline-block; width:6px; height:6px; border-radius:50%; background:#eee; margin-right:7px; box-shadow:0 0 12px #fff; }
+.launch-link {
+  margin-top:42px; width:max-content; border-bottom:1px solid #666; padding:0 0 9px;
+  display:flex; gap:35px; font-size:10px; letter-spacing:.14em; transition:border-color .3s;
+}
+.launch-link:hover { border-color:#fff; }
+.arrow { font-size:15px; line-height:8px; }
+.scroll-note { position:absolute; bottom:30px; left:8vw; font-size:8px; letter-spacing:.18em; color:#666; display:flex; gap:10px; align-items:center; }
+.scroll-note span { width:38px; height:1px; background:#555; }
+.section { padding:14vw 8vw; border-top:1px solid var(--line); position:relative; }
+.section-number { position:absolute; left:4vw; top:14vw; color:#555; font-size:9px; }
+.manifesto { display:grid; grid-template-columns:1fr 2fr; gap:7vw; }
+h2 { font:500 clamp(50px,7vw,100px)/.9 var(--serif); letter-spacing:-.055em; margin:0 0 45px; }
+.body-copy { max-width:550px; color:#999; font-size:12px; line-height:2; }
+.features { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; padding-left:0; padding-right:0; background:var(--line); }
+.feature-card { background:var(--bg); min-height:430px; padding:45px 4vw; display:flex; flex-direction:column; transition:background .5s, transform .5s; }
+.feature-card:hover { background:#0e0e0e; transform:translateY(-8px); }
+.feature-index { color:#666; font-size:9px; margin-bottom:auto; }
+.feature-card h3 { font:500 clamp(30px,3.2vw,50px)/.95 var(--serif); letter-spacing:-.04em; margin:40px 0 20px; }
+.feature-card p { color:#888; font-size:10px; line-height:1.8; max-width:310px; }
+.terminal-line { border-top:1px solid #222; padding-top:15px; margin-top:25px; font-size:8px; color:#777; }
+.terminal-line span { color:#eee; }
+.countdown { text-align:center; }
+.timer { display:grid; grid-template-columns:repeat(4,1fr); max-width:950px; margin:80px auto 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.timer div { padding:40px 10px; border-right:1px solid var(--line); }
+.timer div:last-child { border-right:0; }
+.timer strong { display:block; font:500 clamp(45px,7vw,95px)/1 var(--serif); letter-spacing:-.05em; }
+.timer span { font-size:8px; color:#666; letter-spacing:.18em; }
+.terminal-window { max-width:900px; margin:auto; border:1px solid #292929; background:#080808; box-shadow:0 30px 100px rgba(0,0,0,.5); }
+.terminal-top { display:flex; justify-content:space-between; padding:13px 17px; border-bottom:1px solid #222; color:#555; font-size:8px; }
+.terminal-top span:first-child { letter-spacing:3px; color:#777; }
+.terminal-body { min-height:300px; padding:30px; color:#aaa; font-size:10px; line-height:2.1; }
+.term-line { opacity:0; }
+.term-line .bright { color:#fff; }
+.final { text-align:center; padding-top:18vw; padding-bottom:18vw; }
+.final h2 { font-size:clamp(70px,11vw,150px); margin-bottom:60px; }
+.final-link { margin-left:auto; margin-right:auto; }
+footer { display:flex; justify-content:space-between; padding:25px 4vw; border-top:1px solid var(--line); color:#555; font-size:8px; letter-spacing:.14em; }
+@media(max-width:760px) {
+  .hero { padding-left:6vw; padding-right:6vw; }
+  .hero-title { font-size:20vw; }
+  .launch-meta { gap:22px; flex-wrap:wrap; }
+  .manifesto { grid-template-columns:1fr; }
+  .section-number { position:static; margin-bottom:30px; }
+  .features { grid-template-columns:1fr; }
+  .feature-card { min-height:340px; }
+  .timer strong { font-size:10vw; }
+  .timer div { padding:30px 3px; }
+  .timer span { font-size:6px; letter-spacing:.08em; }
+  .terminal-body { padding:20px; font-size:9px; }
+  footer { gap:20px; flex-direction:column; }
+}
+
+/* Idle black hole: fixed position, subtle orbital shimmer only */
+.blackhole{position:absolute;top:8vh;right:5vw;width:clamp(145px,18vw,260px);height:clamp(145px,18vw,260px);pointer-events:none;z-index:0;filter:drop-shadow(0 0 28px rgba(255,255,255,.08))}.blackhole-core{position:absolute;inset:30%;border-radius:50%;background:#000;box-shadow:0 0 0 1px #333,0 0 35px 5px rgba(255,255,255,.06);z-index:4}.blackhole-ring{position:absolute;border:1px solid rgba(255,255,255,.7);border-radius:50%;box-shadow:0 0 14px rgba(255,255,255,.18),inset 0 0 14px rgba(255,255,255,.12)}.ring-one{inset:9%;transform:rotate(-18deg) scaleY(.32);animation:bh1 3.8s ease-in-out infinite}.ring-two{inset:17%;transform:rotate(18deg) scaleY(.22);opacity:.55;animation:bh2 2.7s ease-in-out infinite}.ring-three{inset:2%;transform:rotate(-10deg) scaleY(.14);opacity:.25;animation:bh3 5s ease-in-out infinite}.blackhole-particle{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;opacity:.6}.p1{top:17%;left:20%;animation:bhf 2.2s infinite}.p2{top:72%;right:16%;animation:bhf 3.1s .4s infinite}.p3{top:29%;right:8%;animation:bhf 1.8s .7s infinite}@keyframes bh1{0%,100%{opacity:.25;transform:rotate(-18deg) scaleY(.30) scale(1)}50%{opacity:.9;transform:rotate(-18deg) scaleY(.34) scale(1.035)}}@keyframes bh2{0%,100%{opacity:.2;transform:rotate(18deg) scaleY(.20) scale(1)}50%{opacity:.7;transform:rotate(18deg) scaleY(.24) scale(1.04)}}@keyframes bh3{0%,100%{opacity:.15;transform:rotate(-10deg) scaleY(.12) scale(1)}50%{opacity:.38;transform:rotate(-10deg) scaleY(.16) scale(1.03)}}@keyframes bhf{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:.85;transform:scale(1.5)}}@media(max-width:760px){.blackhole{top:7vh;right:4vw;width:125px;height:125px;opacity:.72}}@media(prefers-reduced-motion:reduce){.blackhole *{animation:none!important}}
