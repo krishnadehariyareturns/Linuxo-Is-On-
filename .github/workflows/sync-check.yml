@@ -26,7 +26,7 @@ jobs:
             ':!docs/**' \
             ':!.github/**' \
             ':!node_modules/**' \
-            ':!.env' \
+            ':!*.env' \
             ':!*.log' \
             | sort -u > github-files.txt
 
@@ -37,7 +37,6 @@ jobs:
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
           SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
           SFTP_PORT: ${{ secrets.SFTP_PORT }}
-          SFTP_PATH: ${{ secrets.SFTP_PATH }}
         run: |
           set -euo pipefail
 
@@ -45,23 +44,23 @@ jobs:
           : "${SFTP_USERNAME:?SFTP_USERNAME secret is required}"
           : "${SFTP_PASSWORD:?SFTP_PASSWORD secret is required}"
           : "${SFTP_PORT:?SFTP_PORT secret is required}"
-          : "${SFTP_PATH:?SFTP_PATH secret is required}"
 
           lftp -u "$SFTP_USERNAME","$SFTP_PASSWORD" \
             -p "$SFTP_PORT" \
-            "sftp://$SFTP_HOST" <<EOF
+            "sftp://$SFTP_HOST" <<'EOF'
           set sftp:auto-confirm yes
           set net:max-retries 2
           set net:timeout 20
-          cls -1 -a -R "$SFTP_PATH" > sftp-files.txt
+          cls -1 -a -R . > sftp-files.txt
           bye
           EOF
 
-          # Convert the absolute remote path into a repository-relative path.
-          sed "s#^${SFTP_PATH%/}/##" sftp-files.txt \
-            | sed 's#/$##' \
-            | sed '/^$/d' \
-            | sort -u > sftp-files.txt
+          # Normalize SFTP paths.
+          sed -i 's#^\./##' sftp-files.txt
+          sed -i 's#/$##' sftp-files.txt
+          sed -i '/^$/d' sftp-files.txt
+
+          sort -u -o sftp-files.txt sftp-files.txt
 
       - name: Compare files
         shell: bash
