@@ -2,8 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { loadConfig } = require('../lib/logger/config');
-const { createWebhookTransport, categoryFor, resolveCategory, backoffDelay, extractRetryAfterMs } = require('../lib/logger/webhookTransport');
+const { loadConfig } = require('../src/lib/logger/config');
+const { createWebhookTransport, categoryFor, resolveCategory, backoffDelay, extractRetryAfterMs } = require('../src/lib/logger/webhookTransport');
 
 function testConfig(overrides = {}) {
     return loadConfig({

@@ -5,7 +5,7 @@ const { Client, Collection, GatewayIntentBits, ActivityType } = require('discord
 const { createLogger, Events } = require('./lib/logger');
 
 const processStartedAt = Date.now();
-const pkg = require('./package.json');
+const pkg = require('../package.json');
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds],

@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createContext, childContext, fromInteraction, initStaticFields } = require('../lib/logger/context');
+const { createContext, childContext, fromInteraction, initStaticFields } = require('../src/lib/logger/context');
 
 test('createContext includes static + generated fields set via initStaticFields', () => {
     initStaticFields({ botVersion: '1.0.0', shardId: 2 });

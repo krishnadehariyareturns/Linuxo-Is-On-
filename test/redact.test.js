@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { redact, keyMatches } = require('../lib/logger/redact');
+const { redact, keyMatches } = require('../src/lib/logger/redact');
 
 test('redacts known sensitive keys at top level', () => {
     const out = redact({ token: 'abc123', username: 'bob' });

@@ -2,8 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createLogger } = require('../lib/logger/core');
-const { Events } = require('../lib/logger/eventNames');
+const { createLogger } = require('../src/lib/logger/core');
+const { Events } = require('../src/lib/logger/eventNames');
 
 function fakeEmbed(record) {
     return { __fake: true, record };

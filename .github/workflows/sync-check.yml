@@ -18,91 +18,64 @@ jobs:
           sudo apt-get install -y lftp
 
       - name: Create GitHub file list
-        shell: bash
         run: |
-          set -euo pipefail
-
           git ls-files \
             ':!docs/**' \
             ':!.github/**' \
             ':!node_modules/**' \
-            ':!*.env' \
+            ':!.env' \
             ':!*.log' \
-            | sort -u > github-files.txt
+            | sort > github-files.txt
 
       - name: Download SFTP file list
-        shell: bash
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
           SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
           SFTP_PORT: ${{ secrets.SFTP_PORT }}
         run: |
-          set -euo pipefail
-
-          : "${SFTP_HOST:?SFTP_HOST secret is required}"
-          : "${SFTP_USERNAME:?SFTP_USERNAME secret is required}"
-          : "${SFTP_PASSWORD:?SFTP_PASSWORD secret is required}"
-          : "${SFTP_PORT:?SFTP_PORT secret is required}"
-
           lftp -u "$SFTP_USERNAME","$SFTP_PASSWORD" \
             -p "$SFTP_PORT" \
-            "sftp://$SFTP_HOST" <<'EOF'
+            "sftp://$SFTP_HOST" <<EOF
           set sftp:auto-confirm yes
           set net:max-retries 2
-          set net:timeout 20
-          cls -1 -a -R . > sftp-files.txt
+          cls -1 -R "${{ vars.SFTP_REMOTE_PATH || './' }}" > sftp-files.txt
           bye
           EOF
 
-          # Normalize SFTP paths.
-          sed -i 's#^\./##' sftp-files.txt
-          sed -i 's#/$##' sftp-files.txt
-          sed -i '/^$/d' sftp-files.txt
+          sed -i "s#^${{ vars.SFTP_REMOTE_PATH || './' }}##" sftp-files.txt
 
-          sort -u -o sftp-files.txt sftp-files.txt
+          sort -o sftp-files.txt sftp-files.txt
 
       - name: Compare files
-        shell: bash
         run: |
-          set -euo pipefail
-
           comm -23 sftp-files.txt github-files.txt > sftp-only.txt
           comm -13 sftp-files.txt github-files.txt > github-only.txt
 
       - name: Show sync report
-        shell: bash
         run: |
-          {
-            echo "## 🔍 SFTP Sync Check"
-            echo ""
+          echo "## 🔍 SFTP Sync Check" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
-            echo "### ⚠️ Files on SFTP but NOT in GitHub"
-            echo ""
+          echo "### ⚠️ Files on SFTP but NOT in GitHub" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
-            if [ -s sftp-only.txt ]; then
-              echo '```text'
-              cat sftp-only.txt
-              echo '```'
-            else
-              echo "None."
-            fi
+          if [ -s sftp-only.txt ]; then
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            cat sftp-only.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "None." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-            echo ""
-            echo "### ℹ️ Files in GitHub but NOT on SFTP"
-            echo ""
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### ℹ️ Files in GitHub but NOT on SFTP" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
-            if [ -s github-only.txt ]; then
-              echo '```text'
-              cat github-only.txt
-              echo '```'
-            else
-              echo "None."
-            fi
-
-            echo ""
-            echo "### 📊 Summary"
-            echo ""
-            echo "- SFTP-only files: $(wc -l < sftp-only.txt)"
-            echo "- GitHub-only files: $(wc -l < github-only.txt)"
-          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -s github-only.txt ]; then
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            cat github-only.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "None." >> "$GITHUB_STEP_SUMMARY"
+          fi

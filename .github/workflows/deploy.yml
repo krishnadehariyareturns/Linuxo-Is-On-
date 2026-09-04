@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-
   workflow_dispatch:
 
 jobs:
@@ -19,7 +18,6 @@ jobs:
       - name: Prepare deployment files
         run: |
           mkdir deploy
-
           rsync -av . deploy/ \
             --exclude='.git/' \
             --exclude='.github/' \
@@ -27,6 +25,7 @@ jobs:
             --exclude='node_modules/' \
             --exclude='.env' \
             --exclude='*.log' \
+            --exclude='test/' \
             --exclude='deploy/'
 
       - name: Deploy via SFTP
@@ -37,5 +36,28 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           port: ${{ secrets.SFTP_PORT }}
           local_path: './deploy/*'
-          remote_path: './'
+          remote_path: ${{ vars.SFTP_REMOTE_PATH || './' }}
           sftp_only: true
+
+      - name: Install dependencies and restart Linuxo
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT }}
+          script: |
+            set -e
+            cd '${{ vars.SFTP_REMOTE_PATH || './' }}'
+            npm install --omit=dev
+            export NODE_ENV=production
+            if [ -n "${{ secrets.RESTART_COMMAND }}" ]; then
+              eval '${{ secrets.RESTART_COMMAND }}'
+            elif command -v pm2 >/dev/null 2>&1; then
+              pm2 restart linuxo --update-env || pm2 start src/index.js --name linuxo --update-env
+            elif command -v systemctl >/dev/null 2>&1; then
+              systemctl restart linuxo.service
+            else
+              echo 'No restart command configured. Set the RESTART_COMMAND secret, or use pm2/systemd.'
+              exit 1
+            fi

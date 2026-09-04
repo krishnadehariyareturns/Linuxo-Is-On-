@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeError, safeSummary, fingerprint, isRetryable } = require('../lib/logger/errors');
+const { normalizeError, safeSummary, fingerprint, isRetryable } = require('../src/lib/logger/errors');
 
 test('normalizes a plain Error', () => {
     const out = normalizeError(new Error('boom'));

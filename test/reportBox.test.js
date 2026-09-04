@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { renderBoxReport, renderSectionReport } = require('../lib/logger/reportBox');
+const { renderBoxReport, renderSectionReport } = require('../src/lib/logger/reportBox');
 
 test('renderBoxReport produces a box where every line is the same visible width', () => {
     const box = renderBoxReport('COMMAND REPORT', [

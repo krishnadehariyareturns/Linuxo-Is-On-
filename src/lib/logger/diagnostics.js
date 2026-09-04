@@ -32,8 +32,8 @@ async function runHealthChecks(checks) {
         try {
             // eslint-disable-next-line no-await-in-loop
             const outcome = await check();
-            const ok = typeof outcome === 'object' ? outcome.ok : Boolean(outcome);
-            const detail = typeof outcome === 'object' ? outcome.detail : undefined;
+            const ok = outcome !== null && typeof outcome === 'object' ? outcome.ok : Boolean(outcome);
+            const detail = outcome !== null && typeof outcome === 'object' ? outcome.detail : undefined;
             results.push({ name, ok, detail });
         } catch (err) {
             results.push({ name, ok: false, detail: err?.message || 'health check threw' });

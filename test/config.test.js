@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { loadConfig, deepMerge, thresholdsFor } = require('../lib/logger/config');
+const { loadConfig, deepMerge, thresholdsFor } = require('../src/lib/logger/config');
 
 test('loadConfig returns sane defaults with no overrides', () => {
     const c = loadConfig();

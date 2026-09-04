@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, ContainerBuilder, ButtonStyle, MessageFlags } = require('discord.js');
+const pkg = require('../../package.json');
 
 const REFRESH_MS = 5000;
 const MAX_TICKS = 9; // 9 x 5s = 45s of live updates, then the panel freezes
@@ -33,7 +34,7 @@ function buildPanel(client) {
         .addSectionComponents((section) => section
             .addTextDisplayComponents(
                 (textDisplay) => textDisplay
-                    .setContent(`## 🐧 Linuxo\n\n**Linuxo Bot**\nVersion: \`v0.1.0\`\nStatus: 🟢 Online\nUptime: \`${uptime}\`\nLatency: \`${ping}\`\n\n\`linuxo@discord:~$\``),
+                    .setContent(`## 🐧 Linuxo\n\n**Linuxo Bot**\nVersion: \`v${pkg.version}\`\nStatus: 🟢 Online\nUptime: \`${uptime}\`\nLatency: \`${ping}\`\n\n\`linuxo@discord:~$\``),
             )
             .setButtonAccessory((button) => button
                 .setStyle(ButtonStyle.Secondary)

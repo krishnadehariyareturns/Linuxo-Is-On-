@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { RollingWindow, CommandStats, ErrorDedup } = require('../lib/logger/stats');
+const { RollingWindow, CommandStats, ErrorDedup } = require('../src/lib/logger/stats');
 
 test('RollingWindow computes percentiles correctly on simple data', () => {
     const w = new RollingWindow(100);
