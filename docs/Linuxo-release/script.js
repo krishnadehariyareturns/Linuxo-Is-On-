@@ -1,3 +1,26 @@
+
+// Lightweight desktop cursor glow: one RAF update instead of an animation per pointer event.
+if (!prefersReducedMotion && !isCoarsePointer) {
+  const glow = document.querySelector(".cursor-glow");
+  if (glow) {
+    let x = 0, y = 0, raf = 0;
+    window.addEventListener("pointermove", (e) => {
+      x = e.clientX;
+      y = e.clientY;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        glow.style.left = `${x}px`;
+        glow.style.top = `${y}px`;
+        raf = 0;
+      });
+    }, { passive: true });
+  }
+}
+
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+const enableFancyMotion = !prefersReducedMotion && !isCoarsePointer;
+
 // Linuxo Release Invitation — Anime.js motion layer
 const launch = new Date("2026-09-15T19:00:00+05:30").getTime();
 
@@ -72,8 +95,7 @@ document.querySelectorAll(".magnetic").forEach(el => {
 
 // Custom cursor glow
 const glow = document.querySelector(".cursor-glow");
-window.addEventListener("pointermove", e => {
-  anime({targets:glow, left:e.clientX, top:e.clientY, duration:500, easing:"easeOutQuad"});
+
 });
 
 // Terminal reveal
@@ -116,3 +138,17 @@ window.addEventListener("scroll", () => {
     title.style.transform=`translateY(${window.scrollY*.08}px)`;
   }
 });
+
+
+// Post-launch state: don't leave visitors staring at a permanent 00:00:00:00.
+function updateLaunchState() {
+  const launch = new Date("2026-09-15T19:00:00+05:30").getTime();
+  if (Date.now() < launch) return;
+  const countdown = document.querySelector(".countdown");
+  if (countdown && !countdown.dataset.launched) {
+    countdown.dataset.launched = "true";
+    countdown.innerHTML = '<div class="launch-live" role="status"><span>●</span> FIRST BOOT IS LIVE</div>';
+  }
+}
+updateLaunchState();
+setInterval(updateLaunchState, 1000);
