@@ -77,7 +77,10 @@ client.once('ready', async () => {
             });
         }
     } catch (err) {
-        logger.error('COMMAND_REGISTER_ERROR', logger.fromInteraction(null, {}), err);
+    console.error('COMMAND REGISTER FAILED:', err);
+    console.error('Message:', err?.message);
+    console.error('Code:', err?.code);
+    console.error('Status:', err?.status);
     }
 
     const webhooksConfigured = Object.values(logger.config.webhook.categories).filter(Boolean).length;
