@@ -2,7 +2,7 @@ require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits, ActivityType } = require('discord.js');
-const { createLogger, Events } = require('./lib/logger');
+const { createLogger, Events } = require('./lib/forensic-logger');
 
 const processStartedAt = Date.now();
 const pkg = require('../package.json');
@@ -14,7 +14,13 @@ const client = new Client({
 client.commands = new Collection();
 client.buttons = new Collection();
 
-const logger = createLogger({ botVersion: pkg.version, shardId: 0 });
+const logger = createLogger({
+    botVersion: pkg.version,
+    shardId: 0,
+    // Optional — set these in your deploy pipeline so the forensics engine
+    // can flag errors that happen suspiciously close to a fresh deploy.
+    buildInfo: { buildId: process.env.BUILD_ID, deployId: process.env.DEPLOY_ID, gitSha: process.env.GIT_SHA },
+});
 client.logger = logger;
 
 // Nothing in this bot has a database or cache yet — this is where you'd

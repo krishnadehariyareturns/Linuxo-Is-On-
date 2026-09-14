@@ -2,9 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildStartupReport, buildShutdownReport, runHealthChecks } = require('../src/lib/logger/diagnostics');
-const { loadConfig } = require('../src/lib/logger/config');
-const { CommandStats } = require('../src/lib/logger/stats');
+const { buildStartupReport, buildShutdownReport, runHealthChecks } = require('../src/lib/forensic-logger/core/diagnostics');
+const { loadConfig } = require('../src/lib/forensic-logger/core/config');
+const { CommandStats } = require('../src/lib/forensic-logger/core/stats');
 
 test('runHealthChecks tolerates a throwing check without losing the others', async () => {
     const results = await runHealthChecks([

@@ -2,10 +2,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createLogger } = require('../src/lib/logger/core');
-const { Events } = require('../src/lib/logger/eventNames');
+const { createLogger } = require('../src/lib/forensic-logger/core/core');
+const { Events } = require('../src/lib/forensic-logger/core/eventNames');
 
-function fakeEmbed(record) {
+function fakeComponent(record) {
     return { __fake: true, record };
 }
 
@@ -27,14 +27,14 @@ function makeLogger(overrides = {}) {
             },
         },
         sendFn: async (category, payload) => { sent.push({ category, payload }); },
-        buildEmbedFn: fakeEmbed,
+        buildComponentFn: fakeComponent,
         ...overrides,
     });
     return { logger, sent };
 }
 
 function recordsIn(sent) {
-    return sent.flatMap((s) => s.payload.embeds.map((embed) => ({ category: s.category, ...embed.record })));
+    return sent.flatMap((s) => s.payload.components.map((component) => ({ category: s.category, ...component.record })));
 }
 
 test('the global level floor suppresses lower-severity calls before anything else happens', async () => {
@@ -189,8 +189,8 @@ test('logger.error accepts a bare Error as the 3rd positional argument (design-d
     logger.stopBackgroundTasks();
 });
 
-test('an internal logging failure (e.g. a broken buildEmbedFn) never throws out to the caller', () => {
-    const { logger } = makeLogger({ buildEmbedFn: () => { throw new Error('embed builder exploded'); } });
+test('an internal logging failure (e.g. a broken buildComponentFn) never throws out to the caller', () => {
+    const { logger } = makeLogger({ buildComponentFn: () => { throw new Error('component builder exploded'); } });
     assert.doesNotThrow(() => logger.info('SOME_EVENT', {}));
     logger.stopBackgroundTasks();
 });

@@ -2,8 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { loadConfig } = require('../src/lib/logger/config');
-const { createWebhookTransport, categoryFor, resolveCategory, backoffDelay, extractRetryAfterMs } = require('../src/lib/logger/webhookTransport');
+const { loadConfig } = require('../src/lib/forensic-logger/core/config');
+const { createWebhookTransport, categoryFor, resolveCategory, backoffDelay, extractRetryAfterMs } = require('../src/lib/forensic-logger/core/webhookTransport');
 
 function testConfig(overrides = {}) {
     return loadConfig({
@@ -79,7 +79,7 @@ test('enqueued jobs are delivered on tick() and the queue drains on success', as
     assert.equal(transport.getStats().logs.queued, 0);
     assert.equal(sent.length, 1);
     assert.equal(sent[0].cat, 'logs');
-    assert.equal(sent[0].payload.embeds.length, 1);
+    assert.equal(sent[0].payload.components.length, 1);
 });
 
 test('flush is gated by batchSize when not forced', async () => {
@@ -94,19 +94,19 @@ test('flush is gated by batchSize when not forced', async () => {
 
     for (let i = 0; i < 2; i++) transport.route(record('info', 'COMMAND_END'), {}); // now 5 queued, hits batchSize
     await transport.flush('logs');
-    assert.equal(sent.length, 1); // one send call carrying all 5 embeds
+    assert.equal(sent.length, 1); // one send call carrying all 5 components
     assert.equal(transport.getStats().logs.queued, 0);
 });
 
-test('batches larger than 10 embeds are split into multiple Discord-sized sends', async () => {
+test('batches larger than 5 components are split into multiple Discord-sized sends', async () => {
     const config = testConfig({ batchSize: 25, maxQueueSize: 100 });
     const calls = [];
-    const transport = createWebhookTransport({ config, sendFn: async (cat, payload) => { calls.push(payload.embeds.length); } });
+    const transport = createWebhookTransport({ config, sendFn: async (cat, payload) => { calls.push(payload.components.length); } });
 
     for (let i = 0; i < 23; i++) transport.route(record('info', 'COMMAND_END'), {});
     await transport.flush('logs', { force: true });
 
-    assert.deepEqual(calls, [10, 10, 3]);
+    assert.deepEqual(calls, [5, 5, 5, 5, 3]);
 });
 
 test('retries on failure and eventually succeeds within retryLimit', async () => {
