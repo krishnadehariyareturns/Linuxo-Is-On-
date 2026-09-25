@@ -38,3 +38,16 @@ jobs:
           local_path: './deploy/*'
           remote_path: ${{ vars.SFTP_REMOTE_PATH || './' }}
           sftp_only: true
+
+      - name: Restart Linuxo server
+        env:
+          PTERODACTYL_URL: https://console.vexanode.gg
+          PTERODACTYL_API_KEY: ${{ secrets.PTERODACTYL_API_KEY }}
+          SERVER_ID: 10514f17
+        run: |
+          curl -X POST \
+            "$PTERODACTYL_URL/api/client/servers/$SERVER_ID/power" \
+            -H "Authorization: Bearer $PTERODACTYL_API_KEY" \
+            -H "Accept: Application/vnd.pterodactyl.v1+json" \
+            -H "Content-Type: application/json" \
+            -d '{"signal":"restart"}'
