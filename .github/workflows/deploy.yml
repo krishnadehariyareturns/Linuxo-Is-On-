@@ -41,9 +41,9 @@ jobs:
 
       - name: Restart Linuxo server
         env:
-          PTERODACTYL_URL: https://console.vexanode.gg
+          PTERODACTYL_URL: https://panel.plumhost.fun
           PTERODACTYL_API_KEY: ${{ secrets.PTERODACTYL_API_KEY }}
-          SERVER_ID: 10514f17
+          SERVER_ID: 86a95c16-5ed9-44ff-8337-30e89adfffb9
         run: |
           curl -X POST \
             "$PTERODACTYL_URL/api/client/servers/$SERVER_ID/power" \
