@@ -12,12 +12,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ─────────────────────────────────────────────
+      # Checkout
+      # ─────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ─────────────────────────────────────────────
+      # Prepare deployment files
+      # ─────────────────────────────────────────────
       - name: Prepare deployment files
         run: |
-          mkdir deploy
+          set -e
+
+          mkdir -p deploy
+
           rsync -av . deploy/ \
             --exclude='.git/' \
             --exclude='.github/' \
@@ -28,6 +37,87 @@ jobs:
             --exclude='test/' \
             --exclude='deploy/'
 
+          echo "Deployment files:"
+          find deploy -maxdepth 2 -type f | sort
+
+      # ─────────────────────────────────────────────
+      # Test TCP connection
+      # ─────────────────────────────────────────────
+      - name: Test SFTP network connection
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+        run: |
+          set -e
+
+          echo "Testing SFTP network connection..."
+          echo "Host: $SFTP_HOST"
+          echo "Port: $SFTP_PORT"
+
+          if [ -z "$SFTP_HOST" ]; then
+            echo "ERROR: SFTP_HOST secret is empty."
+            exit 1
+          fi
+
+          if [ -z "$SFTP_PORT" ]; then
+            echo "ERROR: SFTP_PORT secret is empty."
+            exit 1
+          fi
+
+          if timeout 10 bash -c \
+            "</dev/tcp/$SFTP_HOST/$SFTP_PORT"
+          then
+            echo "SFTP TCP connection successful."
+          else
+            echo "ERROR: Cannot reach $SFTP_HOST:$SFTP_PORT"
+            exit 1
+          fi
+
+      # ─────────────────────────────────────────────
+      # Test SFTP authentication
+      # ─────────────────────────────────────────────
+      - name: Test SFTP authentication
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+        run: |
+          set -e
+
+          echo "Testing SFTP authentication..."
+
+          if [ -z "$SFTP_USERNAME" ]; then
+            echo "ERROR: SFTP_USERNAME secret is empty."
+            exit 1
+          fi
+
+          if [ -z "$SFTP_PASSWORD" ]; then
+            echo "ERROR: SFTP_PASSWORD secret is empty."
+            exit 1
+          fi
+
+          if timeout 15 sshpass -p "$SFTP_PASSWORD" \
+            sftp \
+              -o ConnectTimeout=10 \
+              -o StrictHostKeyChecking=no \
+              -o BatchMode=no \
+              -P "$SFTP_PORT" \
+              "$SFTP_USERNAME@$SFTP_HOST" <<'EOF'
+          pwd
+          ls
+          bye
+          EOF
+          then
+            echo "SFTP authentication successful."
+          else
+            echo "ERROR: SFTP authentication failed."
+            exit 1
+          fi
+
+      # ─────────────────────────────────────────────
+      # Deploy
+      # ─────────────────────────────────────────────
       - name: Deploy via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
@@ -38,16 +128,48 @@ jobs:
           local_path: './deploy/*'
           remote_path: ${{ vars.SFTP_REMOTE_PATH || './' }}
           sftp_only: true
+          sftpArgs: '-o ConnectTimeout=10 -o ServerAliveInterval=10 -o ServerAliveCountMax=3'
 
+      # ─────────────────────────────────────────────
+      # Restart Linuxo
+      # ─────────────────────────────────────────────
       - name: Restart Linuxo server
         env:
           PTERODACTYL_URL: https://panel.plumhost.fun
           PTERODACTYL_API_KEY: ${{ secrets.PTERODACTYL_API_KEY }}
           SERVER_ID: 86a95c16-5ed9-44ff-8337-30e89adfffb9
         run: |
-          curl -X POST \
+          set -e
+
+          echo "Restarting Linuxo server..."
+
+          HTTP_STATUS=$(curl \
+            --silent \
+            --show-error \
+            --output /tmp/pterodactyl-response.txt \
+            --write-out "%{http_code}" \
+            --request POST \
             "$PTERODACTYL_URL/api/client/servers/$SERVER_ID/power" \
-            -H "Authorization: Bearer $PTERODACTYL_API_KEY" \
-            -H "Accept: Application/vnd.pterodactyl.v1+json" \
-            -H "Content-Type: application/json" \
-            -d '{"signal":"restart"}'
+            --header "Authorization: Bearer $PTERODACTYL_API_KEY" \
+            --header "Accept: Application/vnd.pterodactyl.v1+json" \
+            --header "Content-Type: application/json" \
+            --data '{"signal":"restart"}')
+
+          echo "Pterodactyl HTTP status: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "Linuxo restart request successful."
+          else
+            echo "ERROR: Pterodactyl restart failed."
+            cat /tmp/pterodactyl-response.txt
+            exit 1
+          fi
+
+      # ─────────────────────────────────────────────
+      # Finished
+      # ─────────────────────────────────────────────
+      - name: Deployment complete
+        run: |
+          echo "======================================"
+          echo " Linuxo deployment completed!"
+          echo "======================================"
