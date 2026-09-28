@@ -22,8 +22,13 @@ jobs:
       # Prepare deployment files
       # ─────────────────────────────────────────────
       - name: Prepare deployment files
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
+
+          echo "=========================================="
+          echo "       PREPARING LINUXO DEPLOYMENT"
+          echo "=========================================="
 
           mkdir -p deploy
 
@@ -37,83 +42,273 @@ jobs:
             --exclude='test/' \
             --exclude='deploy/'
 
+          echo
           echo "Deployment files:"
-          find deploy -maxdepth 2 -type f | sort
+          find deploy -type f | sort
+
+          echo
+          echo "Deployment preparation complete."
 
       # ─────────────────────────────────────────────
-      # Test TCP connection
+      # Install diagnostic tools
       # ─────────────────────────────────────────────
-      - name: Test SFTP network connection
-        env:
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+      - name: Install SFTP diagnostic tools
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
-          echo "Testing SFTP network connection..."
-          echo "Host: $SFTP_HOST"
-          echo "Port: $SFTP_PORT"
+          echo "Installing diagnostic tools..."
 
-          if [ -z "$SFTP_HOST" ]; then
-            echo "ERROR: SFTP_HOST secret is empty."
-            exit 1
-          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            netcat-openbsd \
+            sshpass
 
-          if [ -z "$SFTP_PORT" ]; then
-            echo "ERROR: SFTP_PORT secret is empty."
-            exit 1
-          fi
-
-          if timeout 10 bash -c \
-            "</dev/tcp/$SFTP_HOST/$SFTP_PORT"
-          then
-            echo "SFTP TCP connection successful."
-          else
-            echo "ERROR: Cannot reach $SFTP_HOST:$SFTP_PORT"
-            exit 1
-          fi
+          echo "Diagnostic tools installed."
 
       # ─────────────────────────────────────────────
-      # Test SFTP authentication
+      # Detailed SFTP diagnostics
       # ─────────────────────────────────────────────
-      - name: Test SFTP authentication
+      - name: Diagnose SFTP connection
+        shell: bash
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
           SFTP_PORT: ${{ secrets.SFTP_PORT }}
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
           SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
         run: |
-          set -e
+          set -uo pipefail
 
-          echo "Testing SFTP authentication..."
+          echo
+          echo "=========================================="
+          echo "          LINUXO SFTP DIAGNOSTICS"
+          echo "=========================================="
+          echo
 
-          if [ -z "$SFTP_USERNAME" ]; then
-            echo "ERROR: SFTP_USERNAME secret is empty."
+          # ─────────────────────────────────────
+          # 1. Configuration
+          # ─────────────────────────────────────
+          echo "[1/5] Checking configuration..."
+          echo
+
+          FAILED=0
+
+          if [ -z "${SFTP_HOST:-}" ]; then
+            echo "❌ SFTP_HOST is EMPTY"
+            FAILED=1
+          else
+            echo "✅ SFTP_HOST is configured"
+          fi
+
+          if [ -z "${SFTP_PORT:-}" ]; then
+            echo "❌ SFTP_PORT is EMPTY"
+            FAILED=1
+          else
+            echo "✅ SFTP_PORT is configured"
+          fi
+
+          if [ -z "${SFTP_USERNAME:-}" ]; then
+            echo "❌ SFTP_USERNAME is EMPTY"
+            FAILED=1
+          else
+            echo "✅ SFTP_USERNAME is configured"
+          fi
+
+          if [ -z "${SFTP_PASSWORD:-}" ]; then
+            echo "❌ SFTP_PASSWORD is EMPTY"
+            FAILED=1
+          else
+            echo "✅ SFTP_PASSWORD is configured"
+          fi
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo
+            echo "❌ Configuration check failed."
             exit 1
           fi
 
-          if [ -z "$SFTP_PASSWORD" ]; then
-            echo "ERROR: SFTP_PASSWORD secret is empty."
+          echo
+          echo "Host: $SFTP_HOST"
+          echo "Port: $SFTP_PORT"
+          echo "Username: $SFTP_USERNAME"
+          echo "Password: [HIDDEN]"
+          echo
+
+          # ─────────────────────────────────────
+          # 2. DNS
+          # ─────────────────────────────────────
+          echo "[2/5] Testing DNS resolution..."
+          echo
+
+          DNS_OUTPUT=$(getent ahosts "$SFTP_HOST" 2>&1)
+          DNS_EXIT=$?
+
+          if [ "$DNS_EXIT" -ne 0 ] || [ -z "$DNS_OUTPUT" ]; then
+            echo "❌ DNS RESOLUTION FAILED"
+            echo
+            echo "Command:"
+            echo "  getent ahosts $SFTP_HOST"
+            echo
+            echo "Output:"
+            echo "$DNS_OUTPUT"
+            echo
+            echo "Possible causes:"
+            echo "  • Incorrect hostname"
+            echo "  • DNS record does not exist"
+            echo "  • GitHub runner cannot resolve the hostname"
             exit 1
           fi
 
-          if timeout 15 sshpass -p "$SFTP_PASSWORD" \
+          echo "✅ DNS resolution successful."
+          echo
+          echo "Resolved addresses:"
+          echo "$DNS_OUTPUT"
+          echo
+
+          # ─────────────────────────────────────
+          # 3. TCP
+          # ─────────────────────────────────────
+          echo "[3/5] Testing TCP connectivity..."
+          echo
+          echo "Target:"
+          echo "  $SFTP_HOST:$SFTP_PORT"
+          echo
+
+          NC_OUTPUT=$(nc -vz -w 10 "$SFTP_HOST" "$SFTP_PORT" 2>&1)
+          NC_EXIT=$?
+
+          echo "Netcat output:"
+          echo "$NC_OUTPUT"
+          echo
+
+          if [ "$NC_EXIT" -ne 0 ]; then
+            echo "❌ TCP CONNECTION FAILED"
+            echo
+            echo "GitHub Actions could not establish a TCP connection."
+            echo
+            echo "Target:"
+            echo "  Host: $SFTP_HOST"
+            echo "  Port: $SFTP_PORT"
+            echo
+            echo "This failure happens BEFORE username/password authentication."
+            echo
+            echo "Possible causes:"
+            echo "  • Wrong SFTP port"
+            echo "  • Wrong hostname"
+            echo "  • PlumHost node is offline"
+            echo "  • Port 2022 is not publicly accessible"
+            echo "  • Firewall is blocking GitHub Actions"
+            echo "  • Server is only accepting connections from certain IPs"
+            echo
+            echo "❌ DIAGNOSTIC RESULT: TCP PORT UNREACHABLE"
+            exit 1
+          fi
+
+          echo "✅ TCP CONNECTION SUCCESSFUL"
+          echo
+
+          # ─────────────────────────────────────
+          # 4. SSH handshake
+          # ─────────────────────────────────────
+          echo "[4/5] Testing SSH handshake..."
+          echo
+
+          SSH_OUTPUT=$(timeout 15 ssh \
+            -vv \
+            -o ConnectTimeout=10 \
+            -o StrictHostKeyChecking=no \
+            -o PreferredAuthentications=none \
+            -o PubkeyAuthentication=no \
+            -p "$SFTP_PORT" \
+            "$SFTP_USERNAME@$SFTP_HOST" \
+            exit 2>&1)
+
+          SSH_EXIT=$?
+
+          echo "SSH diagnostic output:"
+          echo "$SSH_OUTPUT"
+          echo
+
+          if echo "$SSH_OUTPUT" | grep -qiE \
+            "Connection refused|Connection timed out|Could not resolve|No route to host|Network is unreachable"; then
+
+            echo "❌ SSH CONNECTION FAILED"
+            echo
+            echo "The TCP port may be reachable, but the SSH service"
+            echo "did not complete its connection."
+            exit 1
+          fi
+
+          if echo "$SSH_OUTPUT" | grep -qiE \
+            "SSH-2.0-|Authentications that can continue|Permission denied"; then
+
+            echo "✅ SSH SERVER RESPONDED"
+            echo
+            echo "The SSH/SFTP service is alive."
+          else
+            echo "⚠️ SSH handshake returned an unexpected result."
+            echo
+            echo "Exit code: $SSH_EXIT"
+          fi
+
+          echo
+
+          # ─────────────────────────────────────
+          # 5. SFTP authentication
+          # ─────────────────────────────────────
+          echo "[5/5] Testing SFTP authentication..."
+          echo
+
+          SFTP_OUTPUT=$(timeout 20 sshpass \
+            -p "$SFTP_PASSWORD" \
             sftp \
+              -vv \
               -o ConnectTimeout=10 \
               -o StrictHostKeyChecking=no \
               -o BatchMode=no \
               -P "$SFTP_PORT" \
-              "$SFTP_USERNAME@$SFTP_HOST" <<'EOF'
+              "$SFTP_USERNAME@$SFTP_HOST" <<'SFTP_COMMANDS'
           pwd
           ls
           bye
-          EOF
-          then
-            echo "SFTP authentication successful."
-          else
-            echo "ERROR: SFTP authentication failed."
+          SFTP_COMMANDS
+          2>&1)
+
+          SFTP_EXIT=$?
+
+          echo "SFTP diagnostic output:"
+          echo "$SFTP_OUTPUT"
+          echo
+
+          if [ "$SFTP_EXIT" -ne 0 ]; then
+            echo "❌ SFTP AUTHENTICATION/SESSION FAILED"
+            echo
+            echo "TCP connectivity works, but SFTP could not establish"
+            echo "a successful authenticated session."
+            echo
+            echo "Check:"
+            echo "  • SFTP username"
+            echo "  • PlumHost panel password"
+            echo "  • SFTP port"
+            echo "  • SFTP subsystem configuration"
+            echo
             exit 1
           fi
+
+          echo "✅ SFTP AUTHENTICATION SUCCESSFUL"
+          echo
+
+          echo "=========================================="
+          echo "       ✅ ALL SFTP TESTS PASSED"
+          echo "=========================================="
+          echo
+          echo "The GitHub runner can:"
+          echo "  ✅ Resolve the hostname"
+          echo "  ✅ Reach the SFTP port"
+          echo "  ✅ Talk to the SSH server"
+          echo "  ✅ Authenticate through SFTP"
+          echo
+          echo "Proceeding to deployment."
 
       # ─────────────────────────────────────────────
       # Deploy
@@ -134,14 +329,17 @@ jobs:
       # Restart Linuxo
       # ─────────────────────────────────────────────
       - name: Restart Linuxo server
+        shell: bash
         env:
           PTERODACTYL_URL: https://panel.plumhost.fun
           PTERODACTYL_API_KEY: ${{ secrets.PTERODACTYL_API_KEY }}
           SERVER_ID: 86a95c16-5ed9-44ff-8337-30e89adfffb9
         run: |
-          set -e
+          set -euo pipefail
 
-          echo "Restarting Linuxo server..."
+          echo "=========================================="
+          echo "          RESTARTING LINUXO"
+          echo "=========================================="
 
           HTTP_STATUS=$(curl \
             --silent \
@@ -155,21 +353,25 @@ jobs:
             --header "Content-Type: application/json" \
             --data '{"signal":"restart"}')
 
+          echo
           echo "Pterodactyl HTTP status: $HTTP_STATUS"
 
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-            echo "Linuxo restart request successful."
+            echo "✅ Linuxo restart request successful."
           else
-            echo "ERROR: Pterodactyl restart failed."
+            echo "❌ Pterodactyl restart failed."
+            echo
+            echo "Response:"
             cat /tmp/pterodactyl-response.txt
             exit 1
           fi
 
       # ─────────────────────────────────────────────
-      # Finished
+      # Complete
       # ─────────────────────────────────────────────
       - name: Deployment complete
         run: |
-          echo "======================================"
-          echo " Linuxo deployment completed!"
-          echo "======================================"
+          echo
+          echo "=========================================="
+          echo "      🚀 LINUXO DEPLOYMENT COMPLETE"
+          echo "=========================================="
